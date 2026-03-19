@@ -1,10 +1,13 @@
 import { ImageCarousel } from "@/components/ImageCarousel";
+import { getGalleryPhotos } from "@/lib/photos";
 import Link from "next/link";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const photos = await getGalleryPhotos();
+  const slides = photos.slice(0, 5);
   return (
     <div className="pt-16">
-      <ImageCarousel />
+      <ImageCarousel slides={slides} />
       <section className="mx-auto max-w-4xl px-6 py-20 text-center">
         <h2 className="mb-4 text-2xl font-light tracking-wide text-foreground/90">
           用镜头记录瞬间
