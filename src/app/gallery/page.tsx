@@ -1,6 +1,6 @@
-import Image from "next/image";
 import type { Metadata } from "next";
 import { getGalleryPhotos } from "@/lib/photos";
+import { GalleryGrid } from "@/components/GalleryGrid";
 
 export const metadata: Metadata = {
   title: "作品 | Mantis Photography",
@@ -24,30 +24,7 @@ export default async function GalleryPage() {
             </p>
           </div>
         ) : (
-        <div
-          className="columns-2 gap-4 sm:columns-3 lg:gap-6"
-          style={{ columnFill: "balance" }}
-        >
-          {photos.map((photo, i) => (
-            <div
-              key={`${photo.src}-${i}`}
-              className={`mb-4 break-inside-avoid lg:mb-6 ${
-                i % 3 === 0 ? "[&>div]:aspect-[3/4]" : "[&>div]:aspect-[4/3]"
-              }`}
-            >
-              <div className="relative overflow-hidden rounded-sm bg-white/5">
-                <Image
-                  src={photo.src}
-                  alt={photo.alt}
-                  width={800}
-                  height={i % 3 === 0 ? 1067 : 600}
-                  className="h-full w-full object-cover transition duration-300 hover:scale-105"
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+          <GalleryGrid photos={photos} />
         )}
       </div>
     </div>
