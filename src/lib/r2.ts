@@ -8,8 +8,13 @@ export type R2Photo = {
   // 直接给 <Image /> 使用的公开 URL
   src: string;
   alt: string;
+};
+
+type R2PhotoForSort = {
+  src: string;
+  alt: string;
   key: string;
-  lastModified: Date | null;
+  lastModifiedMs: number;
 };
 
 function requireEnv(name: string): string {
@@ -66,7 +71,7 @@ export async function getPhotosFromR2(): Promise<R2Photo[]> {
     forcePathStyle: true,
   });
 
-  const photos: R2Photo[] = [];
+  const photos: R2PhotoForSort[] = [];
   let continuationToken: string | undefined = undefined;
 
   while (true) {
@@ -89,7 +94,7 @@ export async function getPhotosFromR2(): Promise<R2Photo[]> {
         src: toPublicUrl(publicBaseUrl, obj.Key),
         alt: titleFromKey(obj.Key),
         key: obj.Key,
-        lastModified: obj.LastModified ?? null,
+        lastModifiedMs: obj.LastModified ? obj.LastModified.getTime() : 0,
       });
     }
 
@@ -98,12 +103,9 @@ export async function getPhotosFromR2(): Promise<R2Photo[]> {
     if (!continuationToken) break;
   }
 
-  photos.sort((a, b) => {
-    const at = a.lastModified?.getTime() ?? 0;
-    const bt = b.lastModified?.getTime() ?? 0;
-    return bt - at;
-  });
+  photos.sort((a, b) => b.lastModifiedMs - a.lastModifiedMs);
 
-  return photos;
+  // 只返回可序列化的纯数据给 Client Component
+  return photos.map(({ src, alt }) => ({ src, alt }));
 }
 
