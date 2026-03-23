@@ -20,9 +20,15 @@ type R2PhotoForSort = {
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
+    console.error(`[R2] Missing required env: ${name}`);
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return value;
+}
+
+function mask(value: string) {
+  if (value.length <= 8) return "***";
+  return `${value.slice(0, 4)}***${value.slice(-4)}`;
 }
 
 function titleFromKey(key: string) {
@@ -55,57 +61,91 @@ function toPublicUrl(publicBaseUrl: string, key: string) {
  * 注意：该函数是 Server Component 可直接调用的（不使用 "use client"）。
  */
 export async function getPhotosFromR2(): Promise<R2Photo[]> {
-  const endpoint = requireEnv("R2_ENDPOINT");
-  const accessKeyId = requireEnv("R2_ACCESS_ID");
-  const secretAccessKey = requireEnv("R2_SECRET_KEY");
-  const bucket = requireEnv("R2_BUCKET_NAME");
-  // 优先使用你提供的公开域名（不签名直连）。如果你暂时没配，先回退到 endpoint，避免页面崩溃。
-  // 但 endpoint 可能不是公开可访问的域名，因此图片加载可能会失败，后续你补上 R2_PUBLIC_DOMAIN 即可。
-  const publicBaseUrl = process.env.R2_PUBLIC_DOMAIN ?? endpoint;
+  const envStatus = {
+    R2_ENDPOINT: Boolean(process.env.R2_ENDPOINT),
+    R2_ACCESS_ID: Boolean(process.env.R2_ACCESS_ID),
+    R2_SECRET_KEY: Boolean(process.env.R2_SECRET_KEY),
+    R2_BUCKET_NAME: Boolean(process.env.R2_BUCKET_NAME),
+    NEXT_PUBLIC_R2_DOMAIN: Boolean(process.env.NEXT_PUBLIC_R2_DOMAIN),
+    R2_PUBLIC_DOMAIN: Boolean(process.env.R2_PUBLIC_DOMAIN),
+  };
+  console.log("[R2] getPhotosFromR2 called. env status:", envStatus);
 
-  const client = new S3Client({
-    region: "auto",
-    endpoint,
-    credentials: { accessKeyId, secretAccessKey },
-    // Cloudflare R2 更兼容 path-style
-    forcePathStyle: true,
-  });
+  try {
+    const endpoint = requireEnv("R2_ENDPOINT");
+    const accessKeyId = requireEnv("R2_ACCESS_ID");
+    const secretAccessKey = requireEnv("R2_SECRET_KEY");
+    const bucket = requireEnv("R2_BUCKET_NAME");
+    // 统一优先使用 NEXT_PUBLIC_R2_DOMAIN，兼容旧变量 R2_PUBLIC_DOMAIN
+    const publicBaseUrl =
+      process.env.NEXT_PUBLIC_R2_DOMAIN ?? process.env.R2_PUBLIC_DOMAIN ?? endpoint;
 
-  const photos: R2PhotoForSort[] = [];
-  let continuationToken: string | undefined = undefined;
+    console.log("[R2] Using config:", {
+      endpoint,
+      bucket,
+      publicBaseUrl,
+      accessKeyId: mask(accessKeyId),
+      secretAccessKey: mask(secretAccessKey),
+      domainSource: process.env.NEXT_PUBLIC_R2_DOMAIN
+        ? "NEXT_PUBLIC_R2_DOMAIN"
+        : process.env.R2_PUBLIC_DOMAIN
+          ? "R2_PUBLIC_DOMAIN"
+          : "R2_ENDPOINT(fallback)",
+    });
 
-  while (true) {
-    const resp: ListObjectsV2CommandOutput = await client.send(
-      new ListObjectsV2Command({
-        Bucket: bucket,
-        ContinuationToken: continuationToken,
-      }),
-    );
+    const client = new S3Client({
+      region: "auto",
+      endpoint,
+      credentials: { accessKeyId, secretAccessKey },
+      forcePathStyle: true,
+    });
 
-    const contents = resp.Contents ?? [];
-    for (const obj of contents) {
-      // 过滤掉“文件夹/占位对象”
-      if (!obj.Key) continue;
-      if ((obj.Size ?? 0) === 0) continue;
-      const ext = obj.Key.includes(".") ? obj.Key.slice(obj.Key.lastIndexOf(".")).toLowerCase() : "";
-      if (!IMAGE_EXTS.has(ext)) continue;
+    const photos: R2PhotoForSort[] = [];
+    let continuationToken: string | undefined = undefined;
+    let page = 0;
 
-      photos.push({
-        src: toPublicUrl(publicBaseUrl, obj.Key),
-        alt: titleFromKey(obj.Key),
-        key: obj.Key,
-        lastModifiedMs: obj.LastModified ? obj.LastModified.getTime() : 0,
+    while (true) {
+      const resp: ListObjectsV2CommandOutput = await client.send(
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          ContinuationToken: continuationToken,
+        }),
+      );
+
+      page += 1;
+      const contents = resp.Contents ?? [];
+      console.log("[R2] ListObjectsV2 page:", {
+        page,
+        count: contents.length,
+        isTruncated: Boolean(resp.IsTruncated),
       });
+
+      for (const obj of contents) {
+        if (!obj.Key) continue;
+        if ((obj.Size ?? 0) === 0) continue;
+        const ext = obj.Key.includes(".") ? obj.Key.slice(obj.Key.lastIndexOf(".")).toLowerCase() : "";
+        if (!IMAGE_EXTS.has(ext)) continue;
+
+        photos.push({
+          src: toPublicUrl(publicBaseUrl, obj.Key),
+          alt: titleFromKey(obj.Key),
+          key: obj.Key,
+          lastModifiedMs: obj.LastModified ? obj.LastModified.getTime() : 0,
+        });
+      }
+
+      if (!resp.IsTruncated) break;
+      continuationToken = resp.NextContinuationToken;
+      if (!continuationToken) break;
     }
 
-    if (!resp.IsTruncated) break;
-    continuationToken = resp.NextContinuationToken;
-    if (!continuationToken) break;
+    photos.sort((a, b) => b.lastModifiedMs - a.lastModifiedMs);
+    console.log("[R2] Final photo count:", photos.length);
+
+    return photos.map(({ src, alt }) => ({ src, alt }));
+  } catch (error) {
+    console.error("[R2] getPhotosFromR2 failed:", error);
+    throw error;
   }
-
-  photos.sort((a, b) => b.lastModifiedMs - a.lastModifiedMs);
-
-  // 只返回可序列化的纯数据给 Client Component
-  return photos.map(({ src, alt }) => ({ src, alt }));
 }
 
