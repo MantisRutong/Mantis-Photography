@@ -1,10 +1,13 @@
 import { ImageCarousel } from "@/components/ImageCarousel";
 import Link from "next/link";
+import { getPhotosFromR2 } from "@/lib/r2";
+import type { R2Photo } from "@/lib/r2";
 
-export default function HomePage() {
-  // 目前不从本地目录自动读取图片。
-  // 你之后如果用“其他途径读取图片”，只要把 slides 传给 ImageCarousel 即可。
-  const slides: { src: string; alt: string }[] = [];
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const photos: R2Photo[] = await getPhotosFromR2();
+  const slides = photos.slice(0, 5);
   return (
     <div className="pt-16">
       <ImageCarousel slides={slides} />
