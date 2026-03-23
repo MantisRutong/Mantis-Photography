@@ -1,10 +1,10 @@
 import { ImageCarousel } from "@/components/ImageCarousel";
-import { getGalleryPhotos } from "@/lib/photos";
 import Link from "next/link";
 
-export default async function HomePage() {
-  const photos = await getGalleryPhotos();
-  const slides = photos.slice(0, 5);
+export default function HomePage() {
+  // 目前不从本地目录自动读取图片。
+  // 你之后如果用“其他途径读取图片”，只要把 slides 传给 ImageCarousel 即可。
+  const slides: { src: string; alt: string }[] = [];
   return (
     <div className="pt-16">
       <ImageCarousel slides={slides} />

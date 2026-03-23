@@ -2,7 +2,10 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import type { GalleryPhoto } from "@/lib/photos";
+export type GalleryPhoto = {
+  src: string;
+  alt: string;
+};
 
 export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
