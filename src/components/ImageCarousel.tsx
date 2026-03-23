@@ -40,7 +40,8 @@ export function ImageCarousel({ slides }: { slides: Slide[] }) {
                 src={slide.src}
                 alt={slide.alt}
                 fill
-                className="object-cover"
+                className="object-cover object-center"
+                style={{ objectFit: "cover" }}
                 sizes="100vw"
                 priority={i === 0}
               />

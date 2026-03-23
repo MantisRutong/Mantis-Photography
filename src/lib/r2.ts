@@ -70,8 +70,7 @@ export async function getPhotosFromR2(): Promise<R2Photo[]> {
   const accessKeyId = requireEnv("R2_ACCESS_ID");
   const secretAccessKey = requireEnv("R2_SECRET_KEY");
   const bucket = requireAnyEnv(["R2_BUCKET_NAME", "R2_BUCKET"]);
-  const publicBaseUrl =
-    process.env.NEXT_PUBLIC_R2_DOMAIN ?? process.env.R2_PUBLIC_DOMAIN ?? endpoint;
+  const publicBaseUrl = requireAnyEnv(["NEXT_PUBLIC_R2_DOMAIN", "R2_PUBLIC_DOMAIN"]);
 
   const client = new S3Client({
     region: "auto",
