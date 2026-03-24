@@ -11,13 +11,22 @@ const links = [
 
 export function Nav() {
   const pathname = usePathname();
+  const isHome = pathname === "/";
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-background/80 backdrop-blur-md">
+    <nav
+      className={`left-0 right-0 top-0 z-50 ${
+        isHome
+          ? "absolute bg-transparent"
+          : "fixed border-b border-white/10 bg-background/80 backdrop-blur-md"
+      }`}
+    >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link
           href="/"
-          className="text-lg font-medium tracking-tight text-foreground transition hover:opacity-80"
+          className={`text-lg font-medium tracking-tight transition hover:opacity-80 ${
+            isHome ? "text-white" : "text-foreground"
+          }`}
         >
           Mantis
         </Link>
@@ -27,7 +36,13 @@ export function Nav() {
               <Link
                 href={href}
                 className={`text-sm tracking-wide transition hover:opacity-80 ${
-                  pathname === href ? "text-foreground" : "text-foreground/70"
+                  isHome
+                    ? pathname === href
+                      ? "text-white"
+                      : "text-white/75"
+                    : pathname === href
+                      ? "text-foreground"
+                      : "text-foreground/70"
                 }`}
               >
                 {label}

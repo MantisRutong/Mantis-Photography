@@ -7,11 +7,13 @@ import {
 export type R2Photo = {
   // 直接给 <Image /> 使用的公开 URL
   src: string;
+  originalSrc: string;
   alt: string;
 };
 
 type R2PhotoForSort = {
   src: string;
+  originalSrc: string;
   alt: string;
   key: string;
   lastModifiedMs: number;
@@ -57,6 +59,23 @@ function toPublicUrl(publicBaseUrl: string, key: string) {
   return `${base}/${encodePathSegments(key)}`;
 }
 
+function buildPreviewCandidates(key: string): string[] {
+  const slash = key.lastIndexOf("/");
+  const dir = slash >= 0 ? key.slice(0, slash) : "";
+  const file = slash >= 0 ? key.slice(slash + 1) : key;
+  const dot = file.lastIndexOf(".");
+  const name = dot >= 0 ? file.slice(0, dot) : file;
+  const ext = dot >= 0 ? file.slice(dot) : "";
+  const withDir = (d: string, f: string) => (d ? `${d}/${f}` : f);
+
+  return [
+    withDir(dir, `${name}-md${ext}`),
+    withDir(dir, `${name}-medium${ext}`),
+    withDir(dir ? `${dir}/md` : "md", file),
+    withDir(dir ? `${dir}/preview` : "preview", file),
+  ];
+}
+
 /**
  * 从 Cloudflare R2（S3-compatible）中拉取桶内所有“图片文件”清单。
  * 说明：
@@ -81,6 +100,7 @@ export async function getPhotosFromR2(): Promise<R2Photo[]> {
 
   const photos: R2PhotoForSort[] = [];
   let continuationToken: string | undefined = undefined;
+  const allImageKeys = new Set<string>();
 
   while (true) {
     const resp: ListObjectsV2CommandOutput = await client.send(
@@ -96,9 +116,35 @@ export async function getPhotosFromR2(): Promise<R2Photo[]> {
       if ((obj.Size ?? 0) === 0) continue;
       const ext = obj.Key.includes(".") ? obj.Key.slice(obj.Key.lastIndexOf(".")).toLowerCase() : "";
       if (!IMAGE_EXTS.has(ext)) continue;
+      allImageKeys.add(obj.Key);
+    }
 
+    if (!resp.IsTruncated) break;
+    continuationToken = resp.NextContinuationToken;
+    if (!continuationToken) break;
+  }
+
+  continuationToken = undefined;
+  while (true) {
+    const resp: ListObjectsV2CommandOutput = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        ContinuationToken: continuationToken,
+      }),
+    );
+
+    const contents = resp.Contents ?? [];
+    for (const obj of contents) {
+      if (!obj.Key) continue;
+      if ((obj.Size ?? 0) === 0) continue;
+      const ext = obj.Key.includes(".") ? obj.Key.slice(obj.Key.lastIndexOf(".")).toLowerCase() : "";
+      if (!IMAGE_EXTS.has(ext)) continue;
+
+      const previewKey =
+        buildPreviewCandidates(obj.Key).find((candidate) => allImageKeys.has(candidate)) ?? obj.Key;
       photos.push({
-        src: toPublicUrl(publicBaseUrl, obj.Key),
+        src: toPublicUrl(publicBaseUrl, previewKey),
+        originalSrc: toPublicUrl(publicBaseUrl, obj.Key),
         alt: titleFromKey(obj.Key),
         key: obj.Key,
         lastModifiedMs: obj.LastModified ? obj.LastModified.getTime() : 0,
@@ -111,6 +157,6 @@ export async function getPhotosFromR2(): Promise<R2Photo[]> {
   }
 
   photos.sort((a, b) => b.lastModifiedMs - a.lastModifiedMs);
-  return photos.map(({ src, alt }) => ({ src, alt }));
+  return photos.map(({ src, originalSrc, alt }) => ({ src, originalSrc, alt }));
 }
 

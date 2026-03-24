@@ -14,7 +14,7 @@ export default async function GalleryPage() {
   const photos: GalleryPhoto[] = await getPhotosFromR2();
   return (
     <div className="pt-24 pb-20">
-      <div className="mx-auto max-w-7xl px-6">
+      <div className="mx-auto max-w-7xl px-6 lg:px-10">
         <h1 className="mb-12 text-center text-3xl font-light tracking-wide text-foreground/90">
           作品
         </h1>
