@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/", label: "Home" },
   { href: "/gallery", label: "Work" },
-  { href: "/about", label: "About" },
 ];
 
 export function Nav() {
@@ -24,11 +23,18 @@ export function Nav() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link
           href="/"
-          className={`text-lg font-medium tracking-tight transition hover:opacity-80 ${
+          className={`font-condensed leading-none transition hover:opacity-80 ${
             isHome ? "text-white" : "text-foreground"
           }`}
         >
-          Mantis
+          <span className={isHome ? "text-white/85" : "text-foreground/85"}>
+            <span className="block text-[18px] font-black uppercase tracking-[0.12em] sm:text-[19px]">
+              MANTIS
+            </span>
+            <span className="mt-1 block text-[18px] font-normal tracking-[0.12em] sm:text-[19px]">
+              PHOTO
+            </span>
+          </span>
         </Link>
         <ul className="flex gap-8">
           {links.map(({ href, label }) => (

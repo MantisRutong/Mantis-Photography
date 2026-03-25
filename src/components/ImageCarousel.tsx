@@ -10,6 +10,7 @@ const BLUR_DATA_URL =
 
 export function ImageCarousel({ slides }: { slides: Slide[] }) {
   const [current, setCurrent] = useState(0);
+  const showDots = slides.length > 1 && slides.length <= 12;
 
   useEffect(() => {
     if (slides.length <= 1) return;
@@ -64,7 +65,7 @@ export function ImageCarousel({ slides }: { slides: Slide[] }) {
               <div className="absolute inset-0 bg-black/30" />
             </motion.div>
           </AnimatePresence>
-          {slides.length > 1 && (
+          {showDots ? (
             <div className="absolute bottom-14 left-1/2 z-20 flex -translate-x-1/2 gap-2.5">
               {slides.map((_, i) => (
                 <button
@@ -77,7 +78,11 @@ export function ImageCarousel({ slides }: { slides: Slide[] }) {
                 />
               ))}
             </div>
-          )}
+          ) : slides.length > 1 ? (
+            <div className="absolute bottom-12 left-1/2 z-20 -translate-x-1/2 text-xs tracking-widest text-white/70">
+              {current + 1}/{slides.length}
+            </div>
+          ) : null}
         </>
       )}
     </div>

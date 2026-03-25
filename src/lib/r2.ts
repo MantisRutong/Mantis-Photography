@@ -25,6 +25,11 @@ type R2PhotoForSort = {
   downloadFileName: string;
 };
 
+type R2ListImageRow = {
+  key: string;
+  lastModifiedMs: number;
+};
+
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -155,6 +160,86 @@ function downloadNameFromKey(key: string) {
   while (file.endsWith(".") || file.endsWith(" ")) file = file.slice(0, -1).trim();
   const out = file.slice(0, 200);
   return out || "image";
+}
+
+async function listImagesByPrefix({
+  client,
+  bucket,
+  prefixes,
+}: {
+  client: S3Client;
+  bucket: string;
+  prefixes: string[];
+}): Promise<R2ListImageRow[]> {
+  const all: R2ListImageRow[] = [];
+
+  for (const prefix of prefixes) {
+    let continuationToken: string | undefined = undefined;
+    while (true) {
+      const resp: ListObjectsV2CommandOutput = await client.send(
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+
+      const contents = resp.Contents ?? [];
+      for (const obj of contents) {
+        if (!obj.Key) continue;
+        if ((obj.Size ?? 0) === 0) continue;
+        const ext = obj.Key.includes(".") ? obj.Key.slice(obj.Key.lastIndexOf(".")).toLowerCase() : "";
+        if (!IMAGE_EXTS.has(ext)) continue;
+        all.push({
+          key: obj.Key,
+          lastModifiedMs: obj.LastModified ? obj.LastModified.getTime() : 0,
+        });
+      }
+
+      if (!resp.IsTruncated) break;
+      continuationToken = resp.NextContinuationToken;
+      if (!continuationToken) break;
+    }
+  }
+
+  const seen = new Set<string>();
+  const unique: R2ListImageRow[] = [];
+  for (const row of all) {
+    if (seen.has(row.key)) continue;
+    seen.add(row.key);
+    unique.push(row);
+  }
+
+  unique.sort((a, b) => b.lastModifiedMs - a.lastModifiedMs);
+  return unique;
+}
+
+/**
+ * List images from one or more R2 folder prefixes.
+ * Useful for homepage hero sets like `home/`.
+ */
+export async function getPhotosFromR2Prefix(prefixes: string[]): Promise<R2Photo[]> {
+  const endpoint = requireEnv("R2_ENDPOINT");
+  const accessKeyId = requireEnv("R2_ACCESS_ID");
+  const secretAccessKey = requireEnv("R2_SECRET_KEY");
+  const bucket = requireAnyEnv(["R2_BUCKET_NAME", "R2_BUCKET"]);
+  const publicBaseUrl = requireAnyEnv(["NEXT_PUBLIC_R2_DOMAIN", "R2_PUBLIC_DOMAIN"]);
+
+  const client = new S3Client({
+    region: "auto",
+    endpoint,
+    credentials: { accessKeyId, secretAccessKey },
+    forcePathStyle: true,
+  });
+
+  const rows = await listImagesByPrefix({ client, bucket, prefixes });
+  return rows.map(({ key }) => ({
+    originalKey: key,
+    src: toPublicUrl(publicBaseUrl, key),
+    originalSrc: toPublicUrl(publicBaseUrl, key),
+    downloadFileName: downloadNameFromKey(key),
+    alt: titleFromKey(key),
+  }));
 }
 
 /**

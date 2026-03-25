@@ -50,6 +50,7 @@ function GalleryImageItem({
     >
       <button
         type="button"
+        onClick={onOpen}
         onDoubleClick={onOpen}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") onOpen();
@@ -71,9 +72,6 @@ function GalleryImageItem({
             blurDataURL={BLUR_DATA_URL}
           />
           <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-500 ease-in-out group-hover:bg-black/28" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 p-4 opacity-0 transition-opacity duration-500 ease-in-out group-hover:opacity-100">
-            <p className="line-clamp-1 text-sm font-light tracking-widest text-white/90">{photo.alt}</p>
-          </div>
         </div>
       </button>
     </div>
@@ -82,16 +80,38 @@ function GalleryImageItem({
 
 export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [direction, setDirection] = useState<-1 | 1>(1);
 
   const isOpen = openIndex !== null;
   const active = useMemo(() => (openIndex === null ? null : photos[openIndex] ?? null), [openIndex, photos]);
 
   useEffect(() => {
     if (!isOpen) return;
+    if (!active) return;
+    if (photos.length <= 1) return;
+
+    const next = photos[(openIndex! + 1) % photos.length];
+    const prev = photos[(openIndex! - 1 + photos.length) % photos.length];
+
+    for (const p of [next, prev]) {
+      if (!p?.src) continue;
+      const preloader = new window.Image();
+      preloader.src = p.src;
+    }
+  }, [active?.src, isOpen, openIndex, photos]);
+
+  useEffect(() => {
+    if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpenIndex(null);
-      if (e.key === "ArrowLeft") setOpenIndex((i) => (i === null ? i : (i - 1 + photos.length) % photos.length));
-      if (e.key === "ArrowRight") setOpenIndex((i) => (i === null ? i : (i + 1) % photos.length));
+      if (e.key === "ArrowLeft") {
+        setDirection(-1);
+        setOpenIndex((i) => (i === null ? i : (i - 1 + photos.length) % photos.length));
+      }
+      if (e.key === "ArrowRight") {
+        setDirection(1);
+        setOpenIndex((i) => (i === null ? i : (i + 1) % photos.length));
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -136,15 +156,48 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
                   exit={{ scale: 0.985, opacity: 0 }}
                   transition={{ duration: 0.28, ease: "easeOut" }}
                 >
-                  <Image
-                    src={active.src}
-                    alt={active.alt}
-                    fill
-                    className="object-contain"
-                    sizes="(max-width: 1200px) 100vw, 1200px"
-                    quality={75}
-                    priority
-                  />
+                  <div className="absolute inset-0 overflow-hidden">
+                    <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                      <motion.div
+                        key={active.originalKey}
+                        className="absolute inset-0 bg-black"
+                        custom={direction}
+                        initial={(dir: -1 | 1) => ({ x: dir > 0 ? "18%" : "-18%" })}
+                        animate={{ x: 0 }}
+                        exit={(dir: -1 | 1) => ({ x: dir > 0 ? "-18%" : "18%" })}
+                        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                        drag={photos.length > 1 ? "x" : false}
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={0.12}
+                        onDragEnd={(_, info) => {
+                          const threshold = 80;
+                          if (info.offset.x > threshold) {
+                            setDirection(-1);
+                            setOpenIndex((i) =>
+                              i === null ? i : (i - 1 + photos.length) % photos.length,
+                            );
+                            return;
+                          }
+                          if (info.offset.x < -threshold) {
+                            setDirection(1);
+                            setOpenIndex((i) => (i === null ? i : (i + 1) % photos.length));
+                          }
+                        }}
+                      >
+                        <Image
+                          src={active.src}
+                          alt={active.alt}
+                          fill
+                          className="object-contain"
+                          sizes="(max-width: 1200px) 100vw, 1200px"
+                          quality={75}
+                          priority
+                          placeholder="blur"
+                          blurDataURL={BLUR_DATA_URL}
+                        />
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
                 </motion.button>
 
                 {photos.length > 1 && (
@@ -152,9 +205,10 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
                     <button
                       type="button"
                       className="absolute left-2 top-1/2 -translate-y-1/2 rounded-sm bg-white/10 px-3 py-2 text-sm text-white/90 backdrop-blur hover:bg-white/20"
-                      onClick={() =>
-                        setOpenIndex((i) => (i === null ? i : (i - 1 + photos.length) % photos.length))
-                      }
+                      onClick={() => {
+                        setDirection(-1);
+                        setOpenIndex((i) => (i === null ? i : (i - 1 + photos.length) % photos.length));
+                      }}
                       aria-label="Previous image"
                     >
                       ←
@@ -162,7 +216,10 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
                     <button
                       type="button"
                       className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm bg-white/10 px-3 py-2 text-sm text-white/90 backdrop-blur hover:bg-white/20"
-                      onClick={() => setOpenIndex((i) => (i === null ? i : (i + 1) % photos.length))}
+                      onClick={() => {
+                        setDirection(1);
+                        setOpenIndex((i) => (i === null ? i : (i + 1) % photos.length));
+                      }}
                       aria-label="Next image"
                     >
                       →

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "About | Mantis Photography",
@@ -6,6 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default function AboutPage() {
+  notFound();
   return (
     <div className="pt-24 pb-20">
       <div className="mx-auto max-w-2xl px-6">
