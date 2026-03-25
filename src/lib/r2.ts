@@ -5,13 +5,13 @@ import {
 } from "@aws-sdk/client-s3";
 
 export type R2Photo = {
-  /** 云盘「预览」路径（output），与列表中每一项一一对应，用作 React key */
+  /** R2 preview object key (output); one row per gallery item; stable React key */
   originalKey: string;
-  /** 网页展示用：云盘 output / WebP 等预览图 URL */
+  /** Public URL for the preview asset (output / WebP etc.) */
   src: string;
-  /** 下载用：云盘 input / 原图 URL（与预览同相对路径、不同根目录与扩展名） */
+  /** Public URL for the full-size download (input / original, same relative path) */
   originalSrc: string;
-  /** 建议下载文件名（来自 input 原图文件名；无原图时退化为预览文件名） */
+  /** Suggested download filename from the input object key (or preview if missing) */
   downloadFileName: string;
   alt: string;
 };
@@ -47,7 +47,7 @@ function requireAnyEnv(names: string[]): string {
 function titleFromKey(key: string) {
   const last = key.split("/").pop() ?? key;
   const base = last.replace(/\.[^/.]+$/, "");
-  return base.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim() || "作品";
+  return base.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim() || "Photograph";
 }
 
 // encodeURIComponent each segment, but keep '/' separators
@@ -70,9 +70,9 @@ const IMAGE_EXTS = new Set([
   ".heic",
 ]);
 
-/** 云盘预览根目录（与本地 optimize 输出 `output_images/` 对应） */
+/** R2 preview roots (matches local `output_images/` from optimize script) */
 const OUTPUT_ROOT_PREFIXES = ["output_images/", "output/"];
-/** 云盘原图根目录（与本地 `input_images/` 对应） */
+/** R2 originals roots (matches local `input_images/`) */
 const INPUT_ROOT_PREFIXES = ["input_images/", "input/"];
 
 function stripOutputPrefix(key: string): string | null {
@@ -94,7 +94,7 @@ function bucketHasOutputLayout(allKeys: Set<string>): boolean {
   return false;
 }
 
-/** 预览相对路径 `dir/foo.webp` → 若干 input 对象键（同相对路径 stem，多种原图扩展名） */
+/** Map preview relative path `dir/foo.webp` to possible input object keys (same stem, many extensions). */
 function buildInputKeysFromPreviewRelative(relativeKey: string): string[] {
   const slash = relativeKey.lastIndexOf("/");
   const dir = slash >= 0 ? relativeKey.slice(0, slash) : "";
@@ -134,7 +134,7 @@ function buildPreviewCandidates(key: string): string[] {
   ];
 }
 
-/** 排除「仅作为另一张原图预览」的对象，避免列表里出现重复条目、破坏一一对应 */
+/** Skip small-derivative objects so they do not appear as separate gallery rows. */
 function isLikelyDerivativeKey(key: string): boolean {
   const slash = key.lastIndexOf("/");
   const dir = slash >= 0 ? key.slice(0, slash) : "";
@@ -148,10 +148,7 @@ function isLikelyDerivativeKey(key: string): boolean {
   return base.endsWith("-md") || base.endsWith("-medium");
 }
 
-/**
- * 下载时建议的文件名：与桶内该对象键最后一段一致（一般为 input 原图文件名）。
- * 仅移除 Windows / 跨平台非法字符，保留中文与空格。
- */
+/** Suggested download filename from object key basename; strip illegal path chars only. */
 function downloadNameFromKey(key: string) {
   let file = key.split("/").pop() ?? key;
   file = file.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").trim();
@@ -161,12 +158,9 @@ function downloadNameFromKey(key: string) {
 }
 
 /**
- * 从 Cloudflare R2（S3-compatible）中拉取桶内所有“图片文件”清单。
- * 说明：
- * - 过滤掉 Size=0 的对象（通常是“文件夹/占位对象”）
- * - 按 LastModified 倒序排列
- *
- * 注意：该函数是 Server Component 可直接调用的（不使用 "use client"）。
+ * List image objects from Cloudflare R2 (S3-compatible).
+ * Skips zero-size keys, sorts by LastModified descending.
+ * Safe to call from Server Components.
  */
 export async function getPhotosFromR2(): Promise<R2Photo[]> {
   const endpoint = requireEnv("R2_ENDPOINT");

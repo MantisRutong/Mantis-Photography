@@ -32,7 +32,7 @@ async function ensureGitignoreRules() {
   const separator = content.endsWith("\n") || content.length === 0 ? "" : "\n";
   const appendBlock = `${separator}\n# local raw/optimized images\n${missing.join("\n")}\n`;
   await fs.appendFile(GITIGNORE_PATH, appendBlock, "utf8");
-  console.log(`已更新 .gitignore，追加规则: ${missing.join(", ")}`);
+  console.log(`Updated .gitignore with: ${missing.join(", ")}`);
 }
 
 async function collectImages(dir) {
@@ -63,14 +63,12 @@ async function optimizeOne(srcPath, idx, total) {
   const rel = path.relative(INPUT_DIR, srcPath);
   const parsed = path.parse(rel);
   const outDir = path.join(OUTPUT_DIR, parsed.dir);
-  // 输出 `${原名}.webp`。上传到 R2 时请保持与脚本一致：
-  // - 预览：`output_images/<与 input 相同的相对路径>/<原名>.webp`
-  // - 原图：`input_images/<相对路径>/<原名>.jpg` 等（网站展示用 output，下载链接用 input，见 src/lib/r2.ts）
+  // Output `<stem>.webp`. On R2 use parallel keys: preview under output_images/, originals under input_images/ (see src/lib/r2.ts).
   const outPath = path.join(outDir, `${parsed.name}.webp`);
 
   await fs.mkdir(outDir, { recursive: true });
 
-  console.log(`${formatIndex(idx, total)} 正在处理: ${rel}`);
+  console.log(`${formatIndex(idx, total)} Processing: ${rel}`);
 
   const image = sharp(srcPath, { failOn: "none" });
   const meta = await image.metadata();
@@ -96,13 +94,13 @@ async function main() {
   try {
     await fs.access(INPUT_DIR);
   } catch {
-    console.error("未找到 input_images 目录。请先在项目根目录创建该目录并放入原图。");
+    console.error("input_images not found. Create it in the project root and add source images.");
     process.exit(1);
   }
 
   const files = await collectImages(INPUT_DIR);
   if (files.length === 0) {
-    console.log("input_images 中没有可处理的图片。");
+    console.log("No images to process in input_images.");
     return;
   }
 
@@ -112,11 +110,11 @@ async function main() {
     await optimizeOne(files[i], i + 1, files.length);
   }
 
-  console.log("\n✨ 优化完成！现在你可以将 output_images 里的 WebP 文件批量拖入 Cloudflare R2 了。");
+  console.log("\n✨ Done. Upload WebP files from output_images/ to Cloudflare R2 (preview path).");
 }
 
 main().catch((err) => {
-  console.error("处理失败:", err);
+  console.error("Failed:", err);
   process.exit(1);
 });
 

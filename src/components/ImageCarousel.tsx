@@ -73,7 +73,7 @@ export function ImageCarousel({ slides }: { slides: Slide[] }) {
                   className={`h-[2px] rounded-full transition-all ${
                     i === current ? "w-8 bg-white" : "w-5 bg-white/45 hover:bg-white/70"
                   }`}
-                  aria-label={`切换到第 ${i + 1} 张`}
+                  aria-label={`Go to slide ${i + 1}`}
                 />
               ))}
             </div>

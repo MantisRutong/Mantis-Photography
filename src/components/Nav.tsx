@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/", label: "首页" },
-  { href: "/gallery", label: "作品" },
-  { href: "/about", label: "关于" },
+  { href: "/", label: "Home" },
+  { href: "/gallery", label: "Work" },
+  { href: "/about", label: "About" },
 ];
 
 export function Nav() {

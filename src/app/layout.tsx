@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mantis Photography | 摄影作品集",
-  description: "现代极简摄影作品集",
+  title: "Mantis Photography | Portfolio",
+  description: "A minimal photography portfolio.",
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-screen font-sans antialiased">
         <Nav />
         <main>{children}</main>

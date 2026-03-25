@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 export type GalleryPhoto = {
-  /** 与 R2 原图对象键一致，保证列表/灯箱/下载一一对应 */
+  /** R2 preview key; keeps grid / lightbox / download aligned */
   originalKey: string;
   src: string;
   originalSrc: string;
@@ -55,7 +55,7 @@ function GalleryImageItem({
           if (e.key === "Enter" || e.key === " ") onOpen();
         }}
         className="group block w-full text-left"
-        aria-label={`查看大图：${photo.alt}`}
+        aria-label={`Open large preview: ${photo.alt}`}
       >
         <div className="relative overflow-hidden rounded-sm bg-neutral-900 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
           <Image
@@ -130,7 +130,7 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
                   type="button"
                   onClick={() => setOpenIndex(null)}
                   className="relative h-full w-full cursor-zoom-out"
-                  aria-label="关闭预览"
+                  aria-label="Close preview"
                   initial={{ scale: 0.965, opacity: 0.85 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.985, opacity: 0 }}
@@ -155,7 +155,7 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
                       onClick={() =>
                         setOpenIndex((i) => (i === null ? i : (i - 1 + photos.length) % photos.length))
                       }
-                      aria-label="上一张"
+                      aria-label="Previous image"
                     >
                       ←
                     </button>
@@ -163,7 +163,7 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
                       type="button"
                       className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm bg-white/10 px-3 py-2 text-sm text-white/90 backdrop-blur hover:bg-white/20"
                       onClick={() => setOpenIndex((i) => (i === null ? i : (i + 1) % photos.length))}
-                      aria-label="下一张"
+                      aria-label="Next image"
                     >
                       →
                     </button>
@@ -174,7 +174,7 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
                   type="button"
                   className="absolute right-2 top-2 rounded-sm bg-white/10 px-3 py-2 text-sm text-white/90 backdrop-blur hover:bg-white/20"
                   onClick={() => setOpenIndex(null)}
-                  aria-label="关闭"
+                  aria-label="Close"
                 >
                   Esc
                 </button>
@@ -186,7 +186,7 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
                   onClick={(e) => e.stopPropagation()}
                   className="absolute left-2 top-2 rounded-sm bg-white/10 px-3 py-2 text-sm text-white/90 backdrop-blur hover:bg-white/20"
                 >
-                  下载原图
+                  Download original
                 </a>
               </div>
             </div>

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "关于 | Mantis Photography",
-  description: "关于摄影师",
+  title: "About | Mantis Photography",
+  description: "About the photographer.",
 };
 
 export default function AboutPage() {
@@ -10,17 +10,19 @@ export default function AboutPage() {
     <div className="pt-24 pb-20">
       <div className="mx-auto max-w-2xl px-6">
         <h1 className="mb-12 text-3xl font-light tracking-wide text-foreground/90">
-          关于我
+          About
         </h1>
         <div className="space-y-6 text-foreground/80 leading-relaxed">
           <p>
-            用镜头捕捉光影与情绪，在快门之间留下值得回味的瞬间。摄影于我，是观察世界的方式，也是与观者对话的媒介。
+            I photograph light, mood, and the moments between—using the camera as a way to see and to
+            speak with those who view the work.
           </p>
           <p>
-            无论是人像、风景还是街头纪实，都希望每一张作品都能传递真实与美感。
+            From portraiture to landscape and street work, each image aims for honesty and a quiet sense
+            of beauty.
           </p>
           <p className="pt-4 text-sm text-foreground/60">
-            欢迎通过作品集了解我的风格，也欢迎合作与交流。
+            Browse the portfolio for more, and feel free to reach out for collaborations.
           </p>
         </div>
         <div className="mt-16 border-t border-white/10 pt-10">
