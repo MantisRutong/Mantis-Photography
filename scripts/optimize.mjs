@@ -63,6 +63,9 @@ async function optimizeOne(srcPath, idx, total) {
   const rel = path.relative(INPUT_DIR, srcPath);
   const parsed = path.parse(rel);
   const outDir = path.join(OUTPUT_DIR, parsed.dir);
+  // 输出 `${原名}.webp`。上传到 R2 时请保持与脚本一致：
+  // - 预览：`output_images/<与 input 相同的相对路径>/<原名>.webp`
+  // - 原图：`input_images/<相对路径>/<原名>.jpg` 等（网站展示用 output，下载链接用 input，见 src/lib/r2.ts）
   const outPath = path.join(outDir, `${parsed.name}.webp`);
 
   await fs.mkdir(outDir, { recursive: true });

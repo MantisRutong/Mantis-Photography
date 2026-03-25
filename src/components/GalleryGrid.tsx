@@ -4,8 +4,11 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 export type GalleryPhoto = {
+  /** 与 R2 原图对象键一致，保证列表/灯箱/下载一一对应 */
+  originalKey: string;
   src: string;
-  originalSrc?: string;
+  originalSrc: string;
+  downloadFileName: string;
   alt: string;
 };
 const BLUR_DATA_URL =
@@ -99,7 +102,7 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
       <div className="columns-1 gap-8 sm:columns-2 lg:columns-3 lg:gap-12" style={{ columnFill: "balance" }}>
         {photos.map((photo, i) => (
           <GalleryImageItem
-            key={`${photo.src}-${i}`}
+            key={photo.originalKey}
             photo={photo}
             i={i}
             onOpen={() => setOpenIndex(i)}
@@ -176,10 +179,11 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
                   Esc
                 </button>
                 <a
-                  href={active.originalSrc ?? active.src}
-                  download
+                  href={active.originalSrc}
+                  download={active.downloadFileName}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   className="absolute left-2 top-2 rounded-sm bg-white/10 px-3 py-2 text-sm text-white/90 backdrop-blur hover:bg-white/20"
                 >
                   下载原图
