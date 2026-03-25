@@ -75,7 +75,7 @@ const IMAGE_EXTS = new Set([
   ".heic",
 ]);
 
-/** R2 preview roots (matches local `output_images/` from optimize script) */
+/** R2 preview roots (matches local `output_images/` from RedSize script) */
 const OUTPUT_ROOT_PREFIXES = ["output_images/", "output/"];
 /** R2 originals roots (matches local `input_images/`) */
 const INPUT_ROOT_PREFIXES = ["input_images/", "input/"];
