@@ -162,9 +162,14 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
                         key={active.originalKey}
                         className="absolute inset-0 bg-black"
                         custom={direction}
-                        initial={(dir: -1 | 1) => ({ x: dir > 0 ? "18%" : "-18%" })}
-                        animate={{ x: 0 }}
-                        exit={(dir: -1 | 1) => ({ x: dir > 0 ? "-18%" : "18%" })}
+                        variants={{
+                          enter: (dir: -1 | 1) => ({ x: dir > 0 ? "18%" : "-18%" }),
+                          center: { x: 0 },
+                          exit: (dir: -1 | 1) => ({ x: dir > 0 ? "-18%" : "18%" }),
+                        }}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
                         transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
                         drag={photos.length > 1 ? "x" : false}
                         dragConstraints={{ left: 0, right: 0 }}
